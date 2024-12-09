@@ -1869,7 +1869,7 @@
         renderProducts(products);
 
         function redirectForm(productName, productPrice) {
-            const formUrl = `https://forms.gle/ocFidTiYodHjo1QB7?entry.note=${encodeURIComponent(`Producto: ${productName}, Precio: ${productPrice}`)}`;
+            const formUrl = `https://forms.gle/y9DhQcydLtCCZ9Es9?entry.note=${encodeURIComponent(`Producto: ${productName}, Precio: ${productPrice}`)}`;
             window.location.href = formUrl;
         }
 
