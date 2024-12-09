@@ -17,9 +17,8 @@
             color: #ffffff;
             padding: 20px;
             text-align: center;
-            position: fixed;
+            position: sticky;
             top: 0;
-            width: 100%;
             z-index: 1000;
         }
         header h1 {
@@ -35,12 +34,9 @@
             border: none;
             border-radius: 5px;
         }
-        main {
-            margin-top: 100px; /* Espaciado para evitar que el contenido quede tapado por el header */
-        }
         .product-list {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 20px;
             padding: 20px;
             justify-items: center;
@@ -97,7 +93,13 @@
         }
         @media (max-width: 768px) {
             .product-list {
-                grid-template-columns: repeat(3, 1fr); /* Mantiene 3 columnas en pantallas pequeñas */
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 480px) {
+            .product-list {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
             }
         }
     </style>
@@ -115,8 +117,8 @@
     </main>
     <script>
         const products = [
-                          {
-    name: 'Pistola Hidrogel Automática Recargable',
+            {
+                    name: 'Pistola Hidrogel Automática Recargable',
     price: '85,000',
     description: 'Diversión ilimitada con esta pistola de hidrogel recargable y segura. Perfecta para aventuras al aire libre.',
     image: 'https://d39ru7awumhhs2.cloudfront.net/colombia/products/1489881/1731776615D_NQ_NP_2X_994826-MCO80104608792_102024-F.webp'
@@ -1833,7 +1835,6 @@
             }
 // Agregar aquí más productos hasta 1000
         ];
-
         const productContainer = document.getElementById('product-list');
 
         function normalizeString(str) {
@@ -1848,10 +1849,10 @@
                 productElement.innerHTML = `
                     <img src="${product.image}" alt="${product.name}">
                     <h2>${product.name}</h2>
-                    <p class="price">${product.price} COP</p>
+                    <p class="price">${product.price}</p>
                     <p>${product.description}</p>
-                    <button class="buy-form" onclick="window.location.href='https://forms.gle/ocFidTiYodHjo1QB7'">Comprar</button>
-                    <button class="whatsapp" onclick="buyProduct('${product.name}')">WhatsApp</button>
+                    <button class="buy-form" onclick="redirectForm('${product.name}', '${product.price}')">Comprar</button>
+                    <button class="whatsapp" onclick="buyProduct('${product.name}', '${product.price}')">WhatsApp</button>
                 `;
                 productContainer.appendChild(productElement);
             });
@@ -1867,8 +1868,14 @@
 
         renderProducts(products);
 
-        function buyProduct(productName) {
-            window.location.href = `https://api.whatsapp.com/send?phone=+3206572598&text=Hola,%20quiero%20comprar%20el%20producto:%20${productName}`;
+        function redirectForm(productName, productPrice) {
+            const formUrl = `https://forms.gle/ocFidTiYodHjo1QB7?entry.note=${encodeURIComponent(`Producto: ${productName}, Precio: ${productPrice}`)}`;
+            window.location.href = formUrl;
+        }
+
+        function buyProduct(productName, productPrice) {
+            const whatsappUrl = `https://api.whatsapp.com/send?phone=+3206572598&text=Hola,%20quiero%20comprar%20el%20producto:%20${productName}%20por%20${productPrice}`;
+            window.location.href = whatsappUrl;
         }
     </script>
 </body>
