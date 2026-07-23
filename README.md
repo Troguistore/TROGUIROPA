@@ -2,7 +2,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TROGÜI - Quita Callos Eléctrico | Envío Gratis</title>
+<title>TROGÜI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -26,6 +26,12 @@ h1,h2,h3{font-family:'Poppins',sans-serif}
 
 /* TOPBAR */
 .topbar{position:relative;overflow:hidden;background:var(--dark);color:#fff;text-align:center;padding:12px 14px;font-size:16px;font-weight:800}
+.topbar-inner{display:inline-block;animation:swayTopbar 2.2s ease-in-out infinite}
+@keyframes swayTopbar{
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-14px)}
+  75%{transform:translateX(14px)}
+}
 .topbar::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,.18),transparent);transform:skewX(-20deg);animation:shineMove 3.2s ease-in-out infinite}
 .topbar span{color:var(--orange)}
 
@@ -201,7 +207,7 @@ footer p{font-size:15px;color:#bbb}
 </head>
 <body>
 
-<div class="topbar">🇨🇴 Envío <span>GRATIS</span> a toda Colombia &nbsp;|&nbsp; 💵 Pago Contra Entrega</div>
+<div class="topbar"><span class="topbar-inner">🇨🇴 Envío <span>GRATIS</span> a toda Colombia &nbsp;|&nbsp; 💵 Pago Contra Entrega</span></div>
 
 <header>
   <div class="header-inner">
@@ -494,7 +500,7 @@ function fmt(n){ return Number(n).toLocaleString('es-CO'); }
 
 function loadTopbar(){
   const tb=localStorage.getItem('trogui_callos_topbar');
-  if(tb) document.querySelector('.topbar').innerHTML=tb;
+  if(tb) document.querySelector('.topbar-inner').innerHTML=tb;
 }
 
 // ========== RENDER PRODUCT ==========
@@ -640,12 +646,16 @@ const notifPeople=[
   {name:'Teresa Reyes',city:'Tunja'},{name:'Miryam Guzmán',city:'Pasto'},
   {name:'Carlos Alberto Muñoz',city:'Santa Marta'},{name:'José Antonio Cárdenas',city:'Valledupar'},
 ];
+let notifCount=0;
 function startNotifications(){
   scheduleNextNotif();
 }
 function scheduleNextNotif(){
-  // Entre 15 segundos y 2 minutos
-  const delay = Math.random()*(120000-15000)+15000;
+  let delay;
+  if(notifCount===0) delay=7000;        // primera notificación a los 7 segundos
+  else if(notifCount===1) delay=20000;  // segunda a los 20 segundos
+  else delay = Math.random()*(120000-15000)+15000; // luego varía entre 15seg y 2min
+  notifCount++;
   setTimeout(()=>{
     const person = notifPeople[Math.floor(Math.random()*notifPeople.length)];
     showNotif(`🛍️ <span class="nn">${person.name}</span> de ${person.city} acaba de comprar el <b>${product.name}</b>`);
@@ -675,7 +685,7 @@ function openAdminR(){
   document.getElementById('ap-images').value=product.images.join('\n');
   document.getElementById('ap-video-url').value=product.video||'';
   document.getElementById('ap-images-preview').innerHTML=product.images.map(src=>`<img src="${src}" class="img-preview" onerror="this.style.display='none'">`).join('');
-  document.getElementById('edit-topbar').value=document.querySelector('.topbar').innerHTML;
+  document.getElementById('edit-topbar').value=document.querySelector('.topbar-inner').innerHTML;
   document.getElementById('trust-img-preview').src=document.getElementById('order-trust-img').src;
   renderAdminReviews();
   document.getElementById('admin-r').classList.add('active');
@@ -762,7 +772,7 @@ function saveTrustImage(){
 
 function saveTopbar(){
   const v=document.getElementById('edit-topbar').value;
-  document.querySelector('.topbar').innerHTML=v;
+  document.querySelector('.topbar-inner').innerHTML=v;
   localStorage.setItem('trogui_callos_topbar',v);
   showFloatMsg('✅ Guardado');
 }
