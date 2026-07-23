@@ -195,7 +195,18 @@ footer p{font-size:15px;color:#bbb}
 </style>
 </head>
 <body>
+/* GIF/VIDEO in modal */
+.modal-media-item{border-radius:12px;overflow:hidden;height:190px;object-fit:cover;width:100%}
+</style>
+</head>
+<body>
 
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-scroll" id="topbar-text">
+    🇨🇴 Envíos a TODA Colombia &nbsp;|&nbsp; 💵 PAGO CONTRA ENTREGA &nbsp;|&nbsp; 📦 Interrapidísimo · Coordinadora · Envia &nbsp;|&nbsp; ⭐ +500 clientes felices &nbsp;|&nbsp; 🔒 Compra 100% segura &nbsp;|&nbsp; 🚚 Envío GRATIS en todos los productos
+  </div>
+</div>
 <div class="topbar">🇨🇴 Envío <span>GRATIS</span> a toda Colombia &nbsp;|&nbsp; 💵 Pago Contra Entrega</div>
 
 </div>
