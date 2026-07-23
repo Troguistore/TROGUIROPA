@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -64,10 +65,15 @@ header{background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.08);position:sticky;top
 .urgency-timer{font-size:28px;font-weight:900;color:#fff;letter-spacing:1px}
 
 .trust-badges{display:flex;flex-direction:column;gap:10px;margin:16px 0}
-.trust-badge{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;background:#f0fff4;border:2px solid var(--green);border-radius:14px;padding:12px 16px;font-weight:800;font-size:17px;color:#006630}
-.trust-badge.b2{background:#fff8f0;border-color:var(--orange);color:#a53c00}
+.trust-badge{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;background:#f0fff4;border:2px solid var(--green);border-radius:14px;padding:12px 16px;font-weight:800;font-size:17px;color:#006630;animation:swaySide 2.4s ease-in-out infinite}
+.trust-badge.b2{background:#fff8f0;border-color:var(--orange);color:#a53c00;animation-delay:.5s}
 .trust-badge::after{content:'';position:absolute;top:0;left:-60%;width:50%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,.75),transparent);transform:skewX(-20deg);animation:shineMove 2.6s ease-in-out infinite}
 .trust-badge.b2::after{animation-delay:1.3s}
+@keyframes swaySide{
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-8px)}
+  75%{transform:translateX(8px)}
+}
 @keyframes shineMove{
   0%{left:-60%}
   50%{left:120%}
@@ -195,21 +201,9 @@ footer p{font-size:15px;color:#bbb}
 </style>
 </head>
 <body>
-/* GIF/VIDEO in modal */
-.modal-media-item{border-radius:12px;overflow:hidden;height:190px;object-fit:cover;width:100%}
-</style>
-</head>
-<body>
 
-<!-- TOPBAR -->
-<div class="topbar">
-  <div class="topbar-scroll" id="topbar-text">
-    🇨🇴 Envíos a TODA Colombia &nbsp;|&nbsp; 💵 PAGO CONTRA ENTREGA &nbsp;|&nbsp; 📦 Interrapidísimo · Coordinadora · Envia &nbsp;|&nbsp; ⭐ +500 clientes felices &nbsp;|&nbsp; 🔒 Compra 100% segura &nbsp;|&nbsp; 🚚 Envío GRATIS en todos los productos
-  </div>
-</div>
 <div class="topbar">🇨🇴 Envío <span>GRATIS</span> a toda Colombia &nbsp;|&nbsp; 💵 Pago Contra Entrega</div>
 
-</div>
 <header>
   <div class="header-inner">
     <div class="logo-text">TROGÜI</div>
