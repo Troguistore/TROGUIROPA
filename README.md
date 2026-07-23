@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TROGÜI - Quita Callos Eléctrico | Envío Gratis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800;900&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -24,7 +26,8 @@ button{font-family:'Nunito',sans-serif;cursor:pointer}
 h1,h2,h3{font-family:'Poppins',sans-serif}
 
 /* TOPBAR */
-.topbar{background:var(--dark);color:#fff;text-align:center;padding:12px 14px;font-size:16px;font-weight:800}
+.topbar{position:relative;overflow:hidden;background:var(--dark);color:#fff;text-align:center;padding:12px 14px;font-size:16px;font-weight:800}
+.topbar::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,.18),transparent);transform:skewX(-20deg);animation:shineMove 3.2s ease-in-out infinite}
 .topbar span{color:var(--orange)}
 
 /* HEADER */
@@ -32,6 +35,7 @@ header{background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.08);position:sticky;top
 .header-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
 .logo-text{font-family:'Poppins',sans-serif;font-weight:900;font-size:32px;background:var(--orange);color:var(--dark);padding:4px 16px;border-radius:12px;letter-spacing:-1px}
 .wa-btn-header{display:flex;align-items:center;gap:8px;background:#25D366;color:#fff;padding:14px 22px;border-radius:16px;font-weight:900;font-size:19px;box-shadow:0 4px 14px rgba(37,211,102,.35)}
+.catalog-btn-header{display:flex;align-items:center;gap:8px;background:var(--orange);color:#fff;padding:14px 22px;border-radius:16px;font-weight:900;font-size:19px;box-shadow:0 4px 14px rgba(255,82,0,.35)}
 
 /* HERO */
 .hero{max-width:1100px;margin:0 auto;padding:30px 16px 10px;display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:start}
@@ -61,8 +65,15 @@ header{background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.08);position:sticky;top
 .urgency-timer{font-size:28px;font-weight:900;color:#fff;letter-spacing:1px}
 
 .trust-badges{display:flex;flex-direction:column;gap:10px;margin:16px 0}
-.trust-badge{display:flex;align-items:center;gap:12px;background:#f0fff4;border:2px solid var(--green);border-radius:14px;padding:12px 16px;font-weight:800;font-size:17px;color:#006630}
+.trust-badge{position:relative;overflow:hidden;display:flex;align-items:center;gap:12px;background:#f0fff4;border:2px solid var(--green);border-radius:14px;padding:12px 16px;font-weight:800;font-size:17px;color:#006630}
 .trust-badge.b2{background:#fff8f0;border-color:var(--orange);color:#a53c00}
+.trust-badge::after{content:'';position:absolute;top:0;left:-60%;width:50%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,.75),transparent);transform:skewX(-20deg);animation:shineMove 2.6s ease-in-out infinite}
+.trust-badge.b2::after{animation-delay:1.3s}
+@keyframes shineMove{
+  0%{left:-60%}
+  50%{left:120%}
+  100%{left:120%}
+}
 
 .btn-buy{width:100%;background:var(--orange);color:#fff;border:none;padding:22px;border-radius:18px;font-weight:900;font-size:24px;margin-top:8px;box-shadow:0 8px 24px rgba(255,82,0,.35);transition:.2s}
 .btn-buy:hover{background:#e04800}
@@ -191,7 +202,10 @@ footer p{font-size:15px;color:#bbb}
 <header>
   <div class="header-inner">
     <div class="logo-text">TROGÜI</div>
-    <a href="https://wa.me/573206572598" target="_blank" class="wa-btn-header">💬 Escríbenos: 320 657 2598</a>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a href="https://troguistore.github.io/web/" target="_blank" class="catalog-btn-header">🛍️ Ver Catálogo</a>
+      <a href="https://wa.me/573206572598" target="_blank" class="wa-btn-header">💬 Escríbenos: 320 657 2598</a>
+    </div>
   </div>
 </header>
 
@@ -202,7 +216,7 @@ footer p{font-size:15px;color:#bbb}
 <div class="hero">
   <div>
     <div class="gallery-main">
-      <img id="main-img" src="" alt="Quita Callos Eléctrico" onclick="openLightbox(this.src)">
+      <img id="main-img" src="" alt="Quita Callos Eléctrico" onclick="openLightbox(this.src)" decoding="async" fetchpriority="high">
       <div class="gallery-thumbs" id="gallery-thumbs"></div>
       <video id="main-video" class="media-video" style="display:none" autoplay muted loop playsinline controls></video>
     </div>
@@ -501,7 +515,7 @@ function renderProduct(){
   const imgs = product.images && product.images.length ? product.images : ['https://via.placeholder.com/500x400?text=TROGUI'];
   document.getElementById('main-img').src=imgs[0];
   const thumbs=document.getElementById('gallery-thumbs');
-  thumbs.innerHTML=imgs.map((src,i)=>`<img src="${src}" class="${i===0?'active':''}" onclick="setMainImg(this,'${src.replace(/'/g,"\\'")}')" onerror="this.style.display='none'">`).join('');
+  thumbs.innerHTML=imgs.map((src,i)=>`<img src="${src}" loading="lazy" class="${i===0?'active':''}" onclick="setMainImg(this,'${src.replace(/'/g,"\\'")}')" onerror="this.style.display='none'">`).join('');
 
   // video
   const videoEl=document.getElementById('main-video');
