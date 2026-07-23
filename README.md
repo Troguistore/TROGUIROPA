@@ -197,11 +197,7 @@ footer p{font-size:15px;color:#bbb}
 <body>
 
 <div class="topbar">🇨🇴 Envío <span>GRATIS</span> a toda Colombia &nbsp;|&nbsp; 💵 Pago Contra Entrega</div>
-<!-- TOPBAR -->
-<div class="topbar">
-  <div class="topbar-scroll" id="topbar-text">
-    🇨🇴 Envíos a TODA Colombia &nbsp;|&nbsp; 💵 PAGO CONTRA ENTREGA &nbsp;|&nbsp; 📦 Interrapidísimo · Coordinadora · Envia &nbsp;|&nbsp; ⭐ +500 clientes felices &nbsp;|&nbsp; 🔒 Compra 100% segura &nbsp;|&nbsp; 🚚 Envío GRATIS en todos los productos
-  </div>
+
 </div>
 <header>
   <div class="header-inner">
