@@ -514,13 +514,13 @@ let reviews = JSON.parse(localStorage.getItem('trogui_callos_reviews') || 'null'
    dispositivo que la hizo (como hasta ahora).
 ========================================================= */
 const firebaseConfig = {
-  apiKey: "PEGA_TU_CONFIGURACION_AQUI",
-  authDomain: "PEGA_TU_CONFIGURACION_AQUI",
-  databaseURL: "PEGA_TU_CONFIGURACION_AQUI",
-  projectId: "PEGA_TU_CONFIGURACION_AQUI",
-  storageBucket: "PEGA_TU_CONFIGURACION_AQUI",
-  messagingSenderId: "PEGA_TU_CONFIGURACION_AQUI",
-  appId: "PEGA_TU_CONFIGURACION_AQUI"
+  apiKey: "AIzaSyDG9H0fR3AFbNtjKmVo6pOTBCLovNHxA4I",
+  authDomain: "trogui-ee602.firebaseapp.com",
+  databaseURL: "https://trogui-ee602-default-rtdb.firebaseio.com",
+  projectId: "trogui-ee602",
+  storageBucket: "trogui-ee602.firebasestorage.app",
+  messagingSenderId: "52282646630",
+  appId: "1:52282646630:web:bf37a9f66401b521788da7"
 };
 
 const TROGUI_SYNC = (function(){
@@ -530,12 +530,16 @@ const TROGUI_SYNC = (function(){
   const DB_PATH = 'trogui_callos';
 
   try{
-    if(firebaseConfig.apiKey && firebaseConfig.apiKey !== 'PEGA_TU_CONFIGURACION_AQUI'){
+    const configured = firebaseConfig.apiKey && firebaseConfig.apiKey !== 'PEGA_TU_CONFIGURACION_AQUI';
+    const hasDbUrl = firebaseConfig.databaseURL && firebaseConfig.databaseURL !== 'PEGA_AQUI_TU_DATABASE_URL';
+    if(configured && hasDbUrl){
       firebase.initializeApp(firebaseConfig);
       db = firebase.database();
       try{ storage = firebase.storage(); }catch(e){ /* storage opcional */ }
       ready = true;
       console.log('✅ TROGUI conectado a Firebase. Los cambios se verán en todos los dispositivos.');
+    } else if(configured && !hasDbUrl){
+      console.log('ℹ️ Falta el databaseURL. Crea la Realtime Database en Firebase y pega el link.');
     } else {
       console.log('ℹ️ Firebase no configurado todavía. Los cambios solo se guardan en este dispositivo.');
     }
@@ -544,6 +548,7 @@ const TROGUI_SYNC = (function(){
   }
 
   function isReady(){ return ready; }
+  function hasStorage(){ return !!storage; }
 
   // Carga los datos guardados en la nube (una sola vez al abrir la página)
   function loadRemote(callback){
@@ -578,7 +583,7 @@ const TROGUI_SYNC = (function(){
       .catch(e=>{ console.log('Error subiendo archivo:', e.message); onDone(null); });
   }
 
-  return { isReady, loadRemote, listenRemote, saveField, uploadFile };
+  return { isReady, hasStorage, loadRemote, listenRemote, saveField, uploadFile };
 })();
 
 </script>
@@ -862,6 +867,26 @@ function saveProductInfo(){
   showFloatMsg(TROGUI_SYNC.isReady() ? '✅ Guardado para TODOS los dispositivos' : '✅ Guardado en este dispositivo');
 }
 
+// Comprime una foto antes de guardarla, para que la página siga cargando rápido
+function compressImageToDataURL(file, maxDim, quality, callback){
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const img=new Image();
+    img.onload=function(){
+      let w=img.width, h=img.height;
+      if(w>h){ if(w>maxDim){ h=Math.round(h*maxDim/w); w=maxDim; } }
+      else{ if(h>maxDim){ w=Math.round(w*maxDim/h); h=maxDim; } }
+      const canvas=document.createElement('canvas');
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      callback(canvas.toDataURL('image/jpeg',quality));
+    };
+    img.onerror=function(){ callback(e.target.result); }; // si falla, usamos la original
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 function uploadProductImages(event){
   const files=event.target.files;
   if(!files.length) return;
@@ -871,49 +896,53 @@ function uploadProductImages(event){
     const urls=ta.value.split('\n').map(u=>u.trim()).filter(Boolean);
     document.getElementById('ap-images-preview').innerHTML=urls.map(src=>`<img src="${src}" class="img-preview" onerror="this.style.display='none'">`).join('');
   }
+  function addAndCheck(val){
+    ta.value = ta.value ? ta.value+'\n'+val : val;
+    pending--;
+    if(pending===0) refreshPreview();
+  }
   Array.from(files).forEach(file=>{
-    if(TROGUI_SYNC.isReady()){
-      // Subimos el archivo real a la nube y usamos el link (mucho más liviano y rápido)
+    if(TROGUI_SYNC.isReady() && TROGUI_SYNC.hasStorage()){
+      // Si el Storage está activo, usamos el link (más liviano y rápido)
       showFloatMsg('⏳ Subiendo foto...');
       TROGUI_SYNC.uploadFile(file, 'trogui_callos/images', (url)=>{
-        if(url){
-          ta.value = ta.value ? ta.value+'\n'+url : url;
-        }
-        pending--;
-        if(pending===0) refreshPreview();
+        if(url) addAndCheck(url);
+        else compressImageToDataURL(file, 900, 0.72, addAndCheck);
       });
     } else {
-      // Sin Firebase configurado: guardamos la foto como texto (solo en este dispositivo)
-      const reader=new FileReader();
-      reader.onload=e=>{
-        ta.value = ta.value ? ta.value+'\n'+e.target.result : e.target.result;
-        pending--;
-        if(pending===0) refreshPreview();
-      };
-      reader.readAsDataURL(file);
+      // Sin Storage: comprimimos la foto y la guardamos como texto en la misma base de datos
+      compressImageToDataURL(file, 900, 0.72, addAndCheck);
     }
   });
 }
 function uploadProductVideo(event){
   const file=event.target.files[0];
   if(!file) return;
-  if(TROGUI_SYNC.isReady()){
-    showFloatMsg('⏳ Subiendo video...');
-    TROGUI_SYNC.uploadFile(file, 'trogui_callos/videos', (url)=>{
-      if(url){
-        document.getElementById('ap-video-url').value=url;
-        showFloatMsg('✅ Video/GIF subido, recuerde guardar');
-      } else {
-        showFloatMsg('⚠️ No se pudo subir, intente de nuevo');
-      }
-    });
-  } else {
+  const isGif = file.type==='image/gif';
+  function fallbackBase64(){
+    if(file.size > 6*1024*1024){
+      alert('⚠️ Este video pesa mucho para guardarlo sin el Storage activado (máximo 6MB). Elige uno más corto/liviano, o activa el Storage en Firebase para videos más grandes.');
+      return;
+    }
     const reader=new FileReader();
     reader.onload=e=>{
       document.getElementById('ap-video-url').value=e.target.result;
       showFloatMsg('✅ Video/GIF cargado, recuerde guardar');
     };
     reader.readAsDataURL(file);
+  }
+  if(TROGUI_SYNC.isReady() && TROGUI_SYNC.hasStorage()){
+    showFloatMsg('⏳ Subiendo video...');
+    TROGUI_SYNC.uploadFile(file, 'trogui_callos/videos', (url)=>{
+      if(url){
+        document.getElementById('ap-video-url').value=url;
+        showFloatMsg('✅ Video/GIF subido, recuerde guardar');
+      } else {
+        fallbackBase64();
+      }
+    });
+  } else {
+    fallbackBase64();
   }
 }
 function saveProductMedia(){
@@ -929,7 +958,14 @@ function saveProductMedia(){
 function uploadTrustImage(event){
   const file=event.target.files[0];
   if(!file) return;
-  if(TROGUI_SYNC.isReady()){
+  function fallback(){
+    compressImageToDataURL(file, 500, 0.75, (dataUrl)=>{
+      document.getElementById('trust-img-preview').src=dataUrl;
+      document.getElementById('trust-img-preview').dataset.pending=dataUrl;
+      document.getElementById('trust-img-url').value='';
+    });
+  }
+  if(TROGUI_SYNC.isReady() && TROGUI_SYNC.hasStorage()){
     showFloatMsg('⏳ Subiendo imagen...');
     TROGUI_SYNC.uploadFile(file, 'trogui_callos/trust', (url)=>{
       if(url){
@@ -937,17 +973,11 @@ function uploadTrustImage(event){
         document.getElementById('trust-img-preview').dataset.pending=url;
         document.getElementById('trust-img-url').value='';
       } else {
-        showFloatMsg('⚠️ No se pudo subir, intente de nuevo');
+        fallback();
       }
     });
   } else {
-    const reader=new FileReader();
-    reader.onload=e=>{
-      document.getElementById('trust-img-preview').src=e.target.result;
-      document.getElementById('trust-img-preview').dataset.pending=e.target.result;
-      document.getElementById('trust-img-url').value='';
-    };
-    reader.readAsDataURL(file);
+    fallback();
   }
 }
 function saveTrustImage(){
