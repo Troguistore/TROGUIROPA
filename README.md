@@ -205,6 +205,11 @@ footer{background:var(--dark);color:#fff;padding:34px 16px;text-align:center;mar
 footer .flogo{font-size:28px;font-weight:900;color:var(--orange);margin-bottom:8px}
 footer p{font-size:15px;color:#bbb}
 </style>
+
+<!-- FIREBASE (para que los cambios se vean en TODOS los dispositivos, no solo en el que edita) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 </head>
 <body>
 
@@ -374,6 +379,7 @@ footer p{font-size:15px;color:#bbb}
 <div class="admin-overlay" id="admin-r">
   <div class="admin-panel">
     <h2>✏️ Panel de Edición TROGÜI</h2>
+    <div id="sync-status-banner" style="border-radius:12px;padding:12px 16px;margin-bottom:16px;font-weight:800;font-size:14px"></div>
     <div class="admin-tabs">
       <button class="admin-tab-btn active" onclick="showAdminTab('prod',this)">📦 Producto</button>
       <button class="admin-tab-btn" onclick="showAdminTab('media',this)">🖼️ Imágenes y Video</button>
@@ -484,10 +490,104 @@ let reviews = JSON.parse(localStorage.getItem('trogui_callos_reviews') || 'null'
 
 </script>
 <script>
+/* =========================================================
+   CONFIGURACIÓN DE FIREBASE
+   =========================================================
+   Para que las fotos, precios y textos que edites se vean
+   en TODOS los celulares/computadores (no solo en el tuyo),
+   sigue estos pasos (gratis, 5 minutos):
+
+   1. Entra a https://console.firebase.google.com
+   2. Crea un proyecto nuevo (dale cualquier nombre, ej: "trogui-tienda")
+   3. Dentro del proyecto, click en el ícono </> ("Agregar app web")
+      Regístrala con cualquier nombre, NO marques Hosting.
+   4. Copia el objeto "firebaseConfig" que te muestra y pégalo
+      abajo, reemplazando el que dice "PEGA_TU_CONFIGURACION_AQUI".
+   5. En el menú izquierdo entra a "Realtime Database" -> "Crear base
+      de datos" -> elige modo de PRUEBA (test mode).
+   6. En el menú izquierdo entra a "Storage" -> "Comenzar" -> también
+      en modo de PRUEBA.
+   7. Guarda este archivo y súbelo de nuevo. ¡Listo! Ya sincroniza.
+
+   Mientras no pongas tu configuración real, la página sigue
+   funcionando normal, pero cada edición solo se guardará en el
+   dispositivo que la hizo (como hasta ahora).
+========================================================= */
+const firebaseConfig = {
+  apiKey: "PEGA_TU_CONFIGURACION_AQUI",
+  authDomain: "PEGA_TU_CONFIGURACION_AQUI",
+  databaseURL: "PEGA_TU_CONFIGURACION_AQUI",
+  projectId: "PEGA_TU_CONFIGURACION_AQUI",
+  storageBucket: "PEGA_TU_CONFIGURACION_AQUI",
+  messagingSenderId: "PEGA_TU_CONFIGURACION_AQUI",
+  appId: "PEGA_TU_CONFIGURACION_AQUI"
+};
+
+const TROGUI_SYNC = (function(){
+  let ready = false;
+  let db = null;
+  let storage = null;
+  const DB_PATH = 'trogui_callos';
+
+  try{
+    if(firebaseConfig.apiKey && firebaseConfig.apiKey !== 'PEGA_TU_CONFIGURACION_AQUI'){
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.database();
+      try{ storage = firebase.storage(); }catch(e){ /* storage opcional */ }
+      ready = true;
+      console.log('✅ TROGUI conectado a Firebase. Los cambios se verán en todos los dispositivos.');
+    } else {
+      console.log('ℹ️ Firebase no configurado todavía. Los cambios solo se guardan en este dispositivo.');
+    }
+  }catch(e){
+    console.log('⚠️ No se pudo conectar a Firebase:', e.message);
+  }
+
+  function isReady(){ return ready; }
+
+  // Carga los datos guardados en la nube (una sola vez al abrir la página)
+  function loadRemote(callback){
+    if(!ready){ callback(null); return; }
+    db.ref(DB_PATH).once('value')
+      .then(snap=> callback(snap.exists()? snap.val() : null))
+      .catch(e=>{ console.log('Error cargando datos remotos:', e.message); callback(null); });
+  }
+
+  // Escucha cambios en vivo (si alguien más edita mientras esta página está abierta, se actualiza sola)
+  function listenRemote(callback){
+    if(!ready) return;
+    db.ref(DB_PATH).on('value', snap=>{
+      if(snap.exists()) callback(snap.val());
+    });
+  }
+
+  function saveField(field, value){
+    if(!ready) return Promise.resolve(false);
+    return db.ref(DB_PATH+'/'+field).set(value)
+      .then(()=>true)
+      .catch(e=>{ console.log('Error guardando '+field+':', e.message); return false; });
+  }
+
+  // Sube una foto o video real a Firebase Storage y devuelve el link público
+  function uploadFile(file, folder, onDone){
+    if(!ready || !storage){ onDone(null); return; }
+    const path = folder+'/'+Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9.]/g,'_');
+    const ref = storage.ref().child(path);
+    const task = ref.put(file);
+    task.then(()=> ref.getDownloadURL()).then(url=> onDone(url))
+      .catch(e=>{ console.log('Error subiendo archivo:', e.message); onDone(null); });
+  }
+
+  return { isReady, loadRemote, listenRemote, saveField, uploadFile };
+})();
+
+</script>
+<script>
 let timerInterval=null;
 
 // ========== INIT ==========
 document.addEventListener('DOMContentLoaded', ()=>{
+  // 1) Mostramos primero lo que haya guardado localmente (para que cargue rápido)
   loadTopbar();
   renderProduct();
   renderReviews();
@@ -495,7 +595,42 @@ document.addEventListener('DOMContentLoaded', ()=>{
   startShakeLoop();
   startNotifications();
   document.getElementById('order-trust-img').src = localStorage.getItem('trogui_callos_trust_img') || TRUST_IMG_DEFAULT;
+
+  // 2) Si hay Firebase configurado, traemos los datos reales de la nube
+  //    (así se ve lo mismo en todos los celulares/computadores)
+  TROGUI_SYNC.loadRemote((data)=>{
+    if(!data) return;
+    applyRemoteData(data);
+  });
+
+  // 3) Nos quedamos escuchando: si alguien edita desde otro dispositivo
+  //    mientras esta página sigue abierta, se actualiza sola
+  TROGUI_SYNC.listenRemote((data)=>{
+    applyRemoteData(data);
+  });
 });
+
+function applyRemoteData(data){
+  if(data.product){
+    product = data.product;
+    localStorage.setItem('trogui_callos_product',JSON.stringify(product));
+    renderProduct();
+    startCountdown();
+  }
+  if(data.reviews){
+    reviews = data.reviews;
+    localStorage.setItem('trogui_callos_reviews',JSON.stringify(reviews));
+    renderReviews();
+  }
+  if(data.topbar){
+    document.querySelector('.topbar-inner').innerHTML=data.topbar;
+    localStorage.setItem('trogui_callos_topbar',data.topbar);
+  }
+  if(data.trustImg){
+    document.getElementById('order-trust-img').src=data.trustImg;
+    localStorage.setItem('trogui_callos_trust_img',data.trustImg);
+  }
+}
 
 function fmt(n){ return Number(n).toLocaleString('es-CO'); }
 
@@ -677,6 +812,18 @@ function adminAuth(){
   openAdminR();
 }
 function openAdminR(){
+  const banner=document.getElementById('sync-status-banner');
+  if(TROGUI_SYNC.isReady()){
+    banner.style.background='#f0fff4';
+    banner.style.border='2px solid #00b050';
+    banner.style.color='#006630';
+    banner.innerHTML='✅ Conectado a la nube: todo lo que guardes aquí se verá en TODOS los celulares y computadores.';
+  } else {
+    banner.style.background='#fff0f0';
+    banner.style.border='2px solid #e00';
+    banner.style.color='#a00';
+    banner.innerHTML='⚠️ Todavía NO está conectado a la nube. Lo que edites solo se verá en este dispositivo. Pídele a quien te ayudó con la página que conecte Firebase (ver instrucciones en el código).';
+  }
   document.getElementById('ap-name').value=product.name;
   document.getElementById('ap-solution').value=product.solutionList.join('\n');
   document.getElementById('ap-price').value=product.price;
@@ -709,9 +856,10 @@ function saveProductInfo(){
   product.sold=document.getElementById('ap-sold').value||product.sold;
   product.timerMinutes=parseInt(document.getElementById('ap-timer-min').value)||product.timerMinutes;
   localStorage.setItem('trogui_callos_product',JSON.stringify(product));
+  TROGUI_SYNC.saveField('product', product);
   renderProduct();
   startCountdown();
-  showFloatMsg('✅ Producto guardado');
+  showFloatMsg(TROGUI_SYNC.isReady() ? '✅ Guardado para TODOS los dispositivos' : '✅ Guardado en este dispositivo');
 }
 
 function uploadProductImages(event){
@@ -719,48 +867,88 @@ function uploadProductImages(event){
   if(!files.length) return;
   const ta=document.getElementById('ap-images');
   let pending=files.length;
+  function refreshPreview(){
+    const urls=ta.value.split('\n').map(u=>u.trim()).filter(Boolean);
+    document.getElementById('ap-images-preview').innerHTML=urls.map(src=>`<img src="${src}" class="img-preview" onerror="this.style.display='none'">`).join('');
+  }
   Array.from(files).forEach(file=>{
-    const reader=new FileReader();
-    reader.onload=e=>{
-      ta.value = ta.value ? ta.value+'\n'+e.target.result : e.target.result;
-      pending--;
-      if(pending===0){
-        const urls=ta.value.split('\n').map(u=>u.trim()).filter(Boolean);
-        document.getElementById('ap-images-preview').innerHTML=urls.map(src=>`<img src="${src}" class="img-preview" onerror="this.style.display='none'">`).join('');
-      }
-    };
-    reader.readAsDataURL(file);
+    if(TROGUI_SYNC.isReady()){
+      // Subimos el archivo real a la nube y usamos el link (mucho más liviano y rápido)
+      showFloatMsg('⏳ Subiendo foto...');
+      TROGUI_SYNC.uploadFile(file, 'trogui_callos/images', (url)=>{
+        if(url){
+          ta.value = ta.value ? ta.value+'\n'+url : url;
+        }
+        pending--;
+        if(pending===0) refreshPreview();
+      });
+    } else {
+      // Sin Firebase configurado: guardamos la foto como texto (solo en este dispositivo)
+      const reader=new FileReader();
+      reader.onload=e=>{
+        ta.value = ta.value ? ta.value+'\n'+e.target.result : e.target.result;
+        pending--;
+        if(pending===0) refreshPreview();
+      };
+      reader.readAsDataURL(file);
+    }
   });
 }
 function uploadProductVideo(event){
   const file=event.target.files[0];
   if(!file) return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    document.getElementById('ap-video-url').value=e.target.result;
-    showFloatMsg('✅ Video/GIF cargado, recuerde guardar');
-  };
-  reader.readAsDataURL(file);
+  if(TROGUI_SYNC.isReady()){
+    showFloatMsg('⏳ Subiendo video...');
+    TROGUI_SYNC.uploadFile(file, 'trogui_callos/videos', (url)=>{
+      if(url){
+        document.getElementById('ap-video-url').value=url;
+        showFloatMsg('✅ Video/GIF subido, recuerde guardar');
+      } else {
+        showFloatMsg('⚠️ No se pudo subir, intente de nuevo');
+      }
+    });
+  } else {
+    const reader=new FileReader();
+    reader.onload=e=>{
+      document.getElementById('ap-video-url').value=e.target.result;
+      showFloatMsg('✅ Video/GIF cargado, recuerde guardar');
+    };
+    reader.readAsDataURL(file);
+  }
 }
 function saveProductMedia(){
   const urls=document.getElementById('ap-images').value.split('\n').map(u=>u.trim()).filter(Boolean);
   if(urls.length) product.images=urls;
   product.video=document.getElementById('ap-video-url').value.trim();
   localStorage.setItem('trogui_callos_product',JSON.stringify(product));
+  TROGUI_SYNC.saveField('product', product);
   renderProduct();
-  showFloatMsg('✅ Imágenes y video guardados');
+  showFloatMsg(TROGUI_SYNC.isReady() ? '✅ Guardado para TODOS los dispositivos' : '✅ Guardado en este dispositivo');
 }
 
 function uploadTrustImage(event){
   const file=event.target.files[0];
   if(!file) return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    document.getElementById('trust-img-preview').src=e.target.result;
-    document.getElementById('trust-img-preview').dataset.pending=e.target.result;
-    document.getElementById('trust-img-url').value='';
-  };
-  reader.readAsDataURL(file);
+  if(TROGUI_SYNC.isReady()){
+    showFloatMsg('⏳ Subiendo imagen...');
+    TROGUI_SYNC.uploadFile(file, 'trogui_callos/trust', (url)=>{
+      if(url){
+        document.getElementById('trust-img-preview').src=url;
+        document.getElementById('trust-img-preview').dataset.pending=url;
+        document.getElementById('trust-img-url').value='';
+      } else {
+        showFloatMsg('⚠️ No se pudo subir, intente de nuevo');
+      }
+    });
+  } else {
+    const reader=new FileReader();
+    reader.onload=e=>{
+      document.getElementById('trust-img-preview').src=e.target.result;
+      document.getElementById('trust-img-preview').dataset.pending=e.target.result;
+      document.getElementById('trust-img-url').value='';
+    };
+    reader.readAsDataURL(file);
+  }
 }
 function saveTrustImage(){
   const urlVal=document.getElementById('trust-img-url').value.trim();
@@ -768,14 +956,16 @@ function saveTrustImage(){
   const finalSrc=urlVal||pending||document.getElementById('trust-img-preview').src;
   document.getElementById('order-trust-img').src=finalSrc;
   localStorage.setItem('trogui_callos_trust_img',finalSrc);
-  showFloatMsg('✅ Imagen del formulario actualizada');
+  TROGUI_SYNC.saveField('trustImg', finalSrc);
+  showFloatMsg(TROGUI_SYNC.isReady() ? '✅ Guardado para TODOS los dispositivos' : '✅ Guardado en este dispositivo');
 }
 
 function saveTopbar(){
   const v=document.getElementById('edit-topbar').value;
   document.querySelector('.topbar-inner').innerHTML=v;
   localStorage.setItem('trogui_callos_topbar',v);
-  showFloatMsg('✅ Guardado');
+  TROGUI_SYNC.saveField('topbar', v);
+  showFloatMsg(TROGUI_SYNC.isReady() ? '✅ Guardado para TODOS los dispositivos' : '✅ Guardado en este dispositivo');
 }
 
 function renderAdminReviews(){
@@ -795,8 +985,9 @@ function saveReviews(){
     text:document.getElementById('rt-'+i).value||r.text,
   }));
   localStorage.setItem('trogui_callos_reviews',JSON.stringify(reviews));
+  TROGUI_SYNC.saveField('reviews', reviews);
   renderReviews();
-  showFloatMsg('✅ Reseñas guardadas');
+  showFloatMsg(TROGUI_SYNC.isReady() ? '✅ Guardado para TODOS los dispositivos' : '✅ Guardado en este dispositivo');
 }
 
 function showFloatMsg(msg){
