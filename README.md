@@ -14,7 +14,7 @@
   --red:#e00;
   --gray:#555;
   --border:#e8e8e8;
-  --shadow:0 2px 24px rgba(0,0,0,.10);
+  --shadow:0 4px 24px rgba(0,0,0,.10);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -217,7 +217,7 @@ footer p{font-size:15px;color:#bbb}
 <header>
   <div class="header-inner">
     <div class="logo-text">TROGÜI</div>
-    <div style="display:flex;gap:2px;flex-wrap:wrap">
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
       <a href="https://troguistore.github.io/web/" target="_blank" class="catalog-btn-header">🛍️ Ver Catálogo</a>
       <a href="https://wa.me/573206572598" target="_blank" class="wa-btn-header">💬 Escríbenos: 320 657 2598</a>
     </div>
