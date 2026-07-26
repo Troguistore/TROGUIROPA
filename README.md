@@ -399,6 +399,7 @@ footer p{font-size:15px;color:#bbb}
       <button class="admin-tab-btn" onclick="showAdminTab('media',this)">🖼️ Imágenes y Video</button>
       <button class="admin-tab-btn" onclick="showAdminTab('form',this)">📋 Formulario</button>
       <button class="admin-tab-btn" onclick="showAdminTab('page',this)">🎨 Página y Reseñas</button>
+      <button class="admin-tab-btn" onclick="showAdminTab('debug',this)">🪲 Diagnóstico</button>
     </div>
 
     <div id="admin-tab-prod">
@@ -458,6 +459,14 @@ footer p{font-size:15px;color:#bbb}
         <label>⭐ Editar Reseñas</label>
         <div id="admin-reviews-list"></div>
         <button class="btn-save-admin" onclick="saveReviews()">💾 Guardar Reseñas</button>
+      </div>
+    </div>
+
+    <div id="admin-tab-debug" style="display:none">
+      <div class="admin-group">
+        <p style="font-size:13px;font-weight:700;margin-bottom:8px">Esto muestra, paso a paso, qué está pasando cuando sube fotos/videos y guarda. Si algo falla, tómele foto a esto y envíemelo.</p>
+        <pre id="debug-log-box" style="background:#1a1a2e;color:#8ff08f;padding:12px;border-radius:10px;font-size:11px;max-height:320px;overflow-y:auto;white-space:pre-wrap;word-break:break-all"></pre>
+        <button class="btn-save-admin" onclick="document.getElementById('debug-log-box').textContent=''">🧹 Limpiar</button>
       </div>
     </div>
 
@@ -587,7 +596,11 @@ const TROGUI_SYNC = (function(){
     if(!ready) return Promise.resolve(false);
     return db.ref(DB_PATH+'/'+field).set(value)
       .then(()=>true)
-      .catch(e=>{ console.log('Error guardando '+field+':', e.message); return false; });
+      .catch(e=>{
+        const msg='Error guardando '+field+': '+e.message+' (código: '+(e.code||'?')+')';
+        if(window.logDebug) window.logDebug('❌ Firebase: '+msg); else console.log(msg);
+        return false;
+      });
   }
 
   // Sube una foto o video real a Firebase Storage y devuelve el link público
@@ -597,7 +610,11 @@ const TROGUI_SYNC = (function(){
     const ref = storage.ref().child(path);
     const task = ref.put(file);
     task.then(()=> ref.getDownloadURL()).then(url=> onDone(url))
-      .catch(e=>{ console.log('Error subiendo archivo:', e.message); onDone(null); });
+      .catch(e=>{
+        const msg='Error subiendo archivo a Storage: '+e.message+' (código: '+(e.code||'?')+')';
+        if(window.logDebug) window.logDebug('❌ '+msg); else console.log(msg);
+        onDone(null);
+      });
   }
 
   return { isReady, hasStorage, loadRemote, listenRemote, saveField, uploadFile };
@@ -607,18 +624,30 @@ const TROGUI_SYNC = (function(){
 <script>
 let timerInterval=null;
 
+// ===== DIAGNÓSTICO VISIBLE (para saber exactamente qué está pasando) =====
+window.TROGUI_DEBUG_LOG=[];
+function logDebug(msg){
+  const line='['+new Date().toLocaleTimeString('es-CO')+'] '+msg;
+  window.TROGUI_DEBUG_LOG.push(line);
+  if(window.TROGUI_DEBUG_LOG.length>80) window.TROGUI_DEBUG_LOG.shift();
+  const el=document.getElementById('debug-log-box');
+  if(el) el.textContent=window.TROGUI_DEBUG_LOG.join('\n');
+  console.log(msg);
+}
+
 // Guarda en la memoria del celular sin que un error (memoria llena) detenga
 // el resto de la página. Esto es lo que antes hacía que "no apareciera nada".
 function safeLocalSave(key, value){
   try{
     localStorage.setItem(key, value);
   }catch(e){
-    console.warn('No se pudo guardar "'+key+'" en este dispositivo (memoria llena). No hay problema, ya quedó guardado en la nube.', e);
+    logDebug('⚠️ No se pudo guardar "'+key+'" en este dispositivo (memoria llena): '+e.message);
   }
 }
 
 // ========== INIT ==========
 document.addEventListener('DOMContentLoaded', ()=>{
+  logDebug('Página cargada. Iniciando...');
   // 1) Mostramos primero lo que haya guardado localmente (para que cargue rápido)
   loadTopbar();
   renderProduct();
@@ -630,14 +659,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
   // 2) Si hay Firebase configurado, traemos los datos reales de la nube
   //    (así se ve lo mismo en todos los celulares/computadores)
-  TROGUI_SYNC.loadRemote((data)=>{
-    if(!data) return;
-    applyRemoteData(data);
-  });
-
-  // 3) Nos quedamos escuchando: si alguien edita desde otro dispositivo
-  //    mientras esta página sigue abierta, se actualiza sola
+  logDebug('Firebase listo: '+TROGUI_SYNC.isReady()+' | Storage listo: '+TROGUI_SYNC.hasStorage());
   TROGUI_SYNC.listenRemote((data)=>{
+    logDebug('Datos recibidos de la nube. Videos guardados: '+((data.product&&data.product.videos)?data.product.videos.length:0));
     applyRemoteData(data);
   });
 });
@@ -728,13 +752,17 @@ function renderMedia(){
   if(!mediaWrap) return;
   mediaWrap.innerHTML='';
   const videoList = (product.videos && product.videos.length) ? product.videos : (product.video ? [product.video] : []);
-  videoList.forEach(src=>{
-    if(!src) return;
+  logDebug('renderMedia: hay '+videoList.length+' video(s)/gif(s) para mostrar');
+  videoList.forEach((src,idx)=>{
+    if(!src){ logDebug('Video #'+idx+' está vacío, se ignora'); return; }
+    const tipo = /^data:/.test(src) ? 'texto guardado ('+Math.round(src.length/1024)+'KB)' : 'link ('+src.substring(0,50)+'...)';
+    logDebug('Video #'+idx+': '+tipo);
     const isGif = /^data:image\/gif/i.test(src) || /\.gif(\?|$)/i.test(src);
     if(isGif){
       const img=document.createElement('img');
       img.className='media-video'; img.alt='Video del producto';
-      img.addEventListener('error', ()=>{ console.warn('No cargó un GIF del producto'); img.remove(); });
+      img.addEventListener('error', ()=>{ logDebug('❌ Video #'+idx+' (GIF) NO cargó'); img.remove(); });
+      img.addEventListener('load', ()=>{ logDebug('✅ Video #'+idx+' (GIF) cargó bien'); });
       img.src=src;
       mediaWrap.appendChild(img);
     } else {
@@ -744,8 +772,12 @@ function renderMedia(){
       vid.setAttribute('controls','');
       vid.loop=true;
       vid.muted=true; // necesario para que el celular deje reproducir solo
-      vid.addEventListener('loadeddata', ()=>{ vid.play().catch(()=>{ /* el usuario podrá darle play manualmente */ }); });
-      vid.addEventListener('error', ()=>{ console.warn('No cargó un video del producto:', src.substring(0,40)); vid.remove(); });
+      vid.addEventListener('loadeddata', ()=>{ logDebug('✅ Video #'+idx+' cargó bien'); vid.play().catch(()=>{ logDebug('El video #'+idx+' cargó pero el celular bloqueó el auto-play (no es grave, se puede dar play a mano)'); }); });
+      vid.addEventListener('error', ()=>{
+        const code = vid.error ? vid.error.code : '?';
+        logDebug('❌ Video #'+idx+' NO cargó (código de error: '+code+')');
+        vid.remove();
+      });
       mediaWrap.appendChild(vid);
       // Si es un video guardado como texto (base64), lo convertimos a Blob URL:
       // esto es lo que soluciona que en varios celulares el video no cargara.
@@ -929,6 +961,11 @@ function showAdminTab(tab,btn){
   document.getElementById('admin-tab-media').style.display = tab==='media'?'block':'none';
   document.getElementById('admin-tab-form').style.display = tab==='form'?'block':'none';
   document.getElementById('admin-tab-page').style.display = tab==='page'?'block':'none';
+  document.getElementById('admin-tab-debug').style.display = tab==='debug'?'block':'none';
+  if(tab==='debug'){
+    const el=document.getElementById('debug-log-box');
+    el.textContent = window.TROGUI_DEBUG_LOG.join('\n') || '(vacío por ahora, suba una foto o video para ver los mensajes aquí)';
+  }
 }
 
 function saveProductInfo(){
@@ -998,25 +1035,31 @@ function uploadProductVideo(event){
   if(!files.length) return;
   const ta=document.getElementById('ap-videos');
   let pending=files.length;
+  logDebug('Seleccionó '+files.length+' archivo(s) de video/gif');
   function addAndCheck(val){
     if(val) ta.value = ta.value ? ta.value+'\n'+val : val;
     pending--;
+    logDebug('Archivo listo y agregado al cuadro de texto ('+(val?Math.round(val.length/1024)+'KB':'vacío')+')');
     if(pending===0) showFloatMsg('✅ Video(s)/GIF(s) listo(s), recuerde guardar');
   }
   Array.from(files).forEach(file=>{
+    logDebug('Archivo: '+file.name+' | '+Math.round(file.size/1024)+'KB | tipo: '+file.type);
     function fallbackBase64(){
       if(!TROGUI_SYNC.hasStorage() && file.size > 5*1024*1024){
+        logDebug('⚠️ Archivo pesado sin Storage activo, se intentará guardar como texto igual');
         alert('⚠️ "'+file.name+'" pesa '+Math.round(file.size/1024/1024)+'MB. Sin el Storage de Firebase activado, los videos pesados pueden fallar o cargar lento.\n\nSe intentará guardar igual, pero le recomendamos activar el Storage (gratis) para subir videos sin límite de peso ni cantidad.');
       }
       const reader=new FileReader();
-      reader.onload=e=> addAndCheck(e.target.result);
+      reader.onload=e=>{ logDebug('Convertido a texto correctamente'); addAndCheck(e.target.result); };
+      reader.onerror=e=>{ logDebug('❌ Error leyendo el archivo: '+reader.error); };
       reader.readAsDataURL(file);
     }
     if(TROGUI_SYNC.isReady() && TROGUI_SYNC.hasStorage()){
+      logDebug('Intentando subir a Firebase Storage...');
       showFloatMsg('⏳ Subiendo video...');
       TROGUI_SYNC.uploadFile(file, 'trogui_callos/videos', (url)=>{
-        if(url) addAndCheck(url);
-        else fallbackBase64();
+        if(url){ logDebug('✅ Subido a Storage: '+url); addAndCheck(url); }
+        else { logDebug('⚠️ Falló la subida a Storage, se usará como texto'); fallbackBase64(); }
       });
     } else {
       fallbackBase64();
@@ -1028,14 +1071,23 @@ function saveProductMedia(){
   if(urls.length) product.images=urls;
   product.videos=document.getElementById('ap-videos').value.split('\n').map(u=>u.trim()).filter(Boolean);
   delete product.video; // ya no usamos el campo viejo de un solo video
+  logDebug('Guardando producto: '+product.images.length+' foto(s), '+product.videos.length+' video(s)/gif(s)');
   renderProduct();
   safeLocalSave('trogui_callos_product', JSON.stringify(product));
   if(!TROGUI_SYNC.isReady()){
+    logDebug('Firebase no está conectado, solo se guardó en este dispositivo');
     showFloatMsg('✅ Guardado en este dispositivo');
     return;
   }
   showFloatMsg('⏳ Guardando en la nube...');
+  const payloadSize = Math.round(JSON.stringify(product).length/1024);
+  logDebug('Tamaño total a enviar a Firebase: '+payloadSize+'KB');
+  if(payloadSize > 8000){
+    logDebug('⚠️ El paquete es muy pesado ('+payloadSize+'KB). Firebase puede rechazarlo. Active el Storage para evitar esto.');
+  }
+  logDebug('Enviando a Firebase...');
   TROGUI_SYNC.saveField('product', product).then(ok=>{
+    logDebug(ok ? '✅ Firebase confirmó que se guardó correctamente' : '❌ Firebase NO pudo guardar (revisar conexión o tamaño de los archivos)');
     showFloatMsg(ok ? '✅ Guardado para TODOS los dispositivos' : '⚠️ No se pudo guardar en la nube, revise su conexión e intente de nuevo');
   });
 }
