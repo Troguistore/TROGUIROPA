@@ -266,6 +266,8 @@ footer p{font-size:15px;color:#bbb}
       </div>
     </div>
 
+    <p style="font-size:19px;font-weight:800;color:var(--dark);text-align:center;margin:16px 0;font-style:italic">✨ Imagine el descanso que van a sentir sus pies desde el primer uso...</p>
+
     <div class="trust-badges">
       <div class="trust-badge">🚚 <span>Envío GRATIS a toda Colombia</span></div>
       <div class="trust-badge b2">💵 <span>Pagas cuando lo recibes en tu casa</span></div>
@@ -279,7 +281,7 @@ footer p{font-size:15px;color:#bbb}
 <!-- PROBLEM / SOLUTION -->
 <div class="section">
   <h2 class="section-title">¿Le duelen los <span>pies</span> al caminar?</h2>
-  <p class="section-sub">Miles de personas mayores de 40 años ya encontraron la solución</p>
+  <p class="section-sub">Imagine caminar sin dolor, sentir sus pies suaves y descansados... miles ya lo lograron</p>
   <div class="problem-solution">
     <div class="ps-card problem">
       <h3>😣 El problema</h3>
@@ -415,6 +417,9 @@ footer p{font-size:15px;color:#bbb}
     </div>
 
     <div id="admin-tab-media" style="display:none">
+      <div class="admin-group" style="background:#fff8f0;border-color:var(--orange)">
+        <p style="font-size:13px;color:#a53c00;font-weight:700">💡 Puede subir todas las fotos y videos que quiera, no hay límite de cantidad. Para que los videos carguen siempre rápido y sin fallar (sin importar el peso), active el "Storage" en Firebase — es el mismo lugar donde activó la Realtime Database.</p>
+      </div>
       <div class="admin-group">
         <label>Imágenes (una URL por línea)</label>
         <textarea id="ap-images" rows="4"></textarea>
@@ -679,7 +684,7 @@ function renderProduct(){
   const thumbs=document.getElementById('gallery-thumbs');
   thumbs.innerHTML=imgs.map((src,i)=>`<img src="${src}" loading="lazy" class="${i===0?'active':''}" onclick="setMainImg(this,'${src.replace(/'/g,"\\'")}')" onerror="this.style.display='none'">`).join('');
 
-  // videos y/o gifs (puede haber varios, se muestran uno tras otro)
+  // videos y/o gifs (puede haber varios, se muestran uno tras otro, sin límite de cantidad)
   const mediaWrap=document.getElementById('media-video-wrap');
   mediaWrap.innerHTML='';
   const videoList = (product.videos && product.videos.length) ? product.videos : (product.video ? [product.video] : []);
@@ -687,8 +692,9 @@ function renderProduct(){
     const isGif = /^data:image\/gif/i.test(src) || /\.gif(\?|$)/i.test(src);
     if(isGif){
       const img=document.createElement('img');
-      img.src=src; img.className='media-video'; img.alt='Video del producto';
-      img.onerror=function(){ this.remove(); };
+      img.className='media-video'; img.alt='Video del producto';
+      img.addEventListener('error', ()=>{ console.warn('No cargó un GIF del producto'); img.remove(); });
+      img.src=src;
       mediaWrap.appendChild(img);
     } else {
       const vid=document.createElement('video');
@@ -697,12 +703,11 @@ function renderProduct(){
       vid.setAttribute('controls','');
       vid.loop=true;
       vid.muted=true; // necesario para que el celular deje reproducir solo
-      vid.src=src;
-      vid.onerror=function(){ this.remove(); };
+      // Esperamos a que cargue de verdad antes de intentar reproducir
+      vid.addEventListener('loadeddata', ()=>{ vid.play().catch(()=>{ /* el usuario podrá darle play manualmente */ }); });
+      vid.addEventListener('error', ()=>{ console.warn('No cargó un video del producto (puede ser muy pesado sin Storage activo)'); vid.remove(); });
       mediaWrap.appendChild(vid);
-      // forzamos que arranque solo (algunos celulares lo bloquean si no se hace así)
-      const playPromise = vid.play();
-      if(playPromise && playPromise.catch) playPromise.catch(()=>{ /* el usuario deberá tocar play, no pasa nada */ });
+      vid.src=src; // se asigna después de insertarlo, ayuda a que cargue mejor en celulares
     }
   });
 }
@@ -956,10 +961,8 @@ function uploadProductVideo(event){
   }
   Array.from(files).forEach(file=>{
     function fallbackBase64(){
-      if(file.size > 6*1024*1024){
-        alert('⚠️ "'+file.name+'" pesa mucho para guardarlo sin el Storage activado (máximo 6MB por video). Elija uno más corto/liviano, o active el Storage en Firebase para videos más grandes.');
-        pending--;
-        return;
+      if(!TROGUI_SYNC.hasStorage() && file.size > 5*1024*1024){
+        alert('⚠️ "'+file.name+'" pesa '+Math.round(file.size/1024/1024)+'MB. Sin el Storage de Firebase activado, los videos pesados pueden fallar o cargar lento.\n\nSe intentará guardar igual, pero le recomendamos activar el Storage (gratis) para subir videos sin límite de peso ni cantidad.');
       }
       const reader=new FileReader();
       reader.onload=e=> addAndCheck(e.target.result);
