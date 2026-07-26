@@ -422,6 +422,9 @@ footer p{font-size:15px;color:#bbb}
       <div class="admin-group" style="background:#fff8f0;border-color:var(--orange)">
         <p style="font-size:13px;color:#a53c00;font-weight:700">💡 Puede subir todas las fotos y videos que quiera, no hay límite de cantidad. Para que los videos carguen siempre rápido y sin fallar (sin importar el peso), active el "Storage" en Firebase — es el mismo lugar donde activó la Realtime Database.</p>
       </div>
+      <div class="admin-group" id="media-status-box" style="background:#f0f4ff;border-color:#3b5bdb">
+        <p style="font-size:14px;font-weight:800;color:#2b3a8f" id="media-status-text">Cargando...</p>
+      </div>
       <div class="admin-group">
         <label>Imágenes (una URL por línea)</label>
         <textarea id="ap-images" rows="4"></textarea>
@@ -939,6 +942,10 @@ function openAdminR(){
     banner.style.color='#a00';
     banner.innerHTML='⚠️ Todavía NO está conectado a la nube. Lo que edites solo se verá en este dispositivo. Pídele a quien te ayudó con la página que conecte Firebase (ver instrucciones en el código).';
   }
+  const vList=(product.videos && product.videos.length) ? product.videos : (product.video ? [product.video] : []);
+  document.getElementById('media-status-text').textContent = vList.length
+    ? '📹 Actualmente hay '+vList.length+' video(s)/gif(s) guardado(s) para este producto.'
+    : '📭 Actualmente NO hay ningún video ni gif guardado todavía. Suba uno abajo y dele Guardar.';
   document.getElementById('ap-name').value=product.name;
   document.getElementById('ap-solution').value=product.solutionList.join('\n');
   document.getElementById('ap-price').value=product.price;
@@ -1073,6 +1080,12 @@ function saveProductMedia(){
   delete product.video; // ya no usamos el campo viejo de un solo video
   logDebug('Guardando producto: '+product.images.length+' foto(s), '+product.videos.length+' video(s)/gif(s)');
   renderProduct();
+  const statusEl=document.getElementById('media-status-text');
+  if(statusEl){
+    statusEl.textContent = product.videos.length
+      ? '📹 Actualmente hay '+product.videos.length+' video(s)/gif(s) guardado(s) para este producto.'
+      : '📭 Actualmente NO hay ningún video ni gif guardado todavía. Suba uno abajo y dele Guardar.';
+  }
   safeLocalSave('trogui_callos_product', JSON.stringify(product));
   if(!TROGUI_SYNC.isReady()){
     logDebug('Firebase no está conectado, solo se guardó en este dispositivo');
