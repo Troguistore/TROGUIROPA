@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -683,13 +682,43 @@ function renderProduct(){
   const imgs = product.images && product.images.length ? product.images : ['https://via.placeholder.com/500x400?text=TROGUI'];
   document.getElementById('main-img').src=imgs[0];
   const thumbs=document.getElementById('gallery-thumbs');
-  thumbs.innerHTML=imgs.map((src,i)=>`<img src="${src}" loading="lazy" class="${i===0?'active':''}" onclick="setMainImg(this,'${src.replace(/'/g,"\\'")}')" onerror="this.style.display='none'">`).join('');
+  try{
+    thumbs.innerHTML=imgs.map((src,i)=>`<img src="${src}" loading="lazy" class="${i===0?'active':''}" onclick="setMainImg(this,'${String(src).replace(/'/g,"\\'")}')" onerror="this.style.display='none'">`).join('');
+  }catch(e){
+    console.warn('Error mostrando la galería de fotos:', e);
+  }
 
-  // videos y/o gifs (puede haber varios, se muestran uno tras otro, sin límite de cantidad)
+  // videos y gifs: los mostramos en una función aparte para que un fallo aquí
+  // nunca impida que se muestren (y viceversa)
+  renderMedia();
+}
+
+// Convierte un video guardado como texto largo (base64) a un formato que
+// los celulares reproducen de forma mucho más confiable (Blob URL)
+function dataURLtoBlobURL(dataURL){
+  try{
+    const parts=dataURL.split(',');
+    const mimeMatch=parts[0].match(/data:(.*?);base64/);
+    const mime=mimeMatch ? mimeMatch[1] : 'video/mp4';
+    const binary=atob(parts[1]);
+    const len=binary.length;
+    const bytes=new Uint8Array(len);
+    for(let i=0;i<len;i++){ bytes[i]=binary.charCodeAt(i); }
+    const blob=new Blob([bytes],{type:mime});
+    return URL.createObjectURL(blob);
+  }catch(e){
+    console.warn('No se pudo convertir el video, se intentará mostrar igual:', e);
+    return dataURL;
+  }
+}
+
+function renderMedia(){
   const mediaWrap=document.getElementById('media-video-wrap');
+  if(!mediaWrap) return;
   mediaWrap.innerHTML='';
   const videoList = (product.videos && product.videos.length) ? product.videos : (product.video ? [product.video] : []);
   videoList.forEach(src=>{
+    if(!src) return;
     const isGif = /^data:image\/gif/i.test(src) || /\.gif(\?|$)/i.test(src);
     if(isGif){
       const img=document.createElement('img');
@@ -704,11 +733,14 @@ function renderProduct(){
       vid.setAttribute('controls','');
       vid.loop=true;
       vid.muted=true; // necesario para que el celular deje reproducir solo
-      // Esperamos a que cargue de verdad antes de intentar reproducir
       vid.addEventListener('loadeddata', ()=>{ vid.play().catch(()=>{ /* el usuario podrá darle play manualmente */ }); });
-      vid.addEventListener('error', ()=>{ console.warn('No cargó un video del producto (puede ser muy pesado sin Storage activo)'); vid.remove(); });
+      vid.addEventListener('error', ()=>{ console.warn('No cargó un video del producto:', src.substring(0,40)); vid.remove(); });
       mediaWrap.appendChild(vid);
-      vid.src=src; // se asigna después de insertarlo, ayuda a que cargue mejor en celulares
+      // Si es un video guardado como texto (base64), lo convertimos a Blob URL:
+      // esto es lo que soluciona que en varios celulares el video no cargara.
+      const finalSrc = /^data:/.test(src) ? dataURLtoBlobURL(src) : src;
+      vid.src=finalSrc;
+      vid.load();
     }
   });
 }
