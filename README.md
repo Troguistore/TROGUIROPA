@@ -423,11 +423,11 @@ footer p{font-size:15px;color:#bbb}
         <div id="ap-images-preview" style="margin-top:8px"></div>
       </div>
       <div class="admin-group">
-        <label>Video o GIF (URL)</label>
-        <input type="text" id="ap-video-url" placeholder="https://video.mp4 o .gif">
-        <label>O suba un video/gif desde su galería</label>
-        <input type="file" accept="video/*,image/gif" onchange="uploadProductVideo(event)">
-        <div class="form-hint">El video se reproduce automáticamente en la página principal.</div>
+        <label>Videos o GIFs (una URL por línea, puede poner varios)</label>
+        <textarea id="ap-videos" rows="3" placeholder="https://video1.mp4&#10;https://video2.mp4"></textarea>
+        <label>O suba uno o varios videos/gifs desde su galería (puede seleccionar más de uno a la vez)</label>
+        <input type="file" accept="video/*,image/gif" multiple onchange="uploadProductVideo(event)">
+        <div class="form-hint">Los videos se reproducen automáticamente (sin sonido) en la página principal. Puede subir más de uno.</div>
         <button class="btn-save-admin" onclick="saveProductMedia()">💾 Guardar Imágenes y Video</button>
       </div>
     </div>
@@ -481,7 +481,7 @@ let product = JSON.parse(localStorage.getItem('trogui_callos_product') || 'null'
     'https://d39ru7awumhhs2.cloudfront.net/colombia/products/1707725/1773851515Callos.webp',
     'https://d39ru7awumhhs2.cloudfront.net/colombia/products/1707725/1773851515callos%202.webp'
   ],
-  video:'',
+  videos:[],
   solutionList:[
     'Elimina callos y durezas sin dolor, sin cuchillas ni riesgo de cortes.',
     'Se usa desde la comodidad de su casa, cuando usted quiera.',
@@ -679,17 +679,32 @@ function renderProduct(){
   const thumbs=document.getElementById('gallery-thumbs');
   thumbs.innerHTML=imgs.map((src,i)=>`<img src="${src}" loading="lazy" class="${i===0?'active':''}" onclick="setMainImg(this,'${src.replace(/'/g,"\\'")}')" onerror="this.style.display='none'">`).join('');
 
-  // video o gif (detectamos el tipo para que se muestre correctamente)
+  // videos y/o gifs (puede haber varios, se muestran uno tras otro)
   const mediaWrap=document.getElementById('media-video-wrap');
   mediaWrap.innerHTML='';
-  if(product.video){
-    const isGif = /^data:image\/gif/i.test(product.video) || /\.gif(\?|$)/i.test(product.video);
+  const videoList = (product.videos && product.videos.length) ? product.videos : (product.video ? [product.video] : []);
+  videoList.forEach(src=>{
+    const isGif = /^data:image\/gif/i.test(src) || /\.gif(\?|$)/i.test(src);
     if(isGif){
-      mediaWrap.innerHTML = `<img src="${product.video}" class="media-video" alt="Video del producto" onerror="this.parentNode.innerHTML=''">`;
+      const img=document.createElement('img');
+      img.src=src; img.className='media-video'; img.alt='Video del producto';
+      img.onerror=function(){ this.remove(); };
+      mediaWrap.appendChild(img);
     } else {
-      mediaWrap.innerHTML = `<video class="media-video" autoplay muted loop playsinline controls onerror="this.parentNode.innerHTML=''"><source src="${product.video}"></video>`;
+      const vid=document.createElement('video');
+      vid.className='media-video';
+      vid.setAttribute('playsinline','');
+      vid.setAttribute('controls','');
+      vid.loop=true;
+      vid.muted=true; // necesario para que el celular deje reproducir solo
+      vid.src=src;
+      vid.onerror=function(){ this.remove(); };
+      mediaWrap.appendChild(vid);
+      // forzamos que arranque solo (algunos celulares lo bloquean si no se hace así)
+      const playPromise = vid.play();
+      if(playPromise && playPromise.catch) playPromise.catch(()=>{ /* el usuario deberá tocar play, no pasa nada */ });
     }
-  }
+  });
 }
 function setMainImg(el,src){
   document.querySelectorAll('.gallery-thumbs img').forEach(i=>i.classList.remove('active'));
@@ -850,7 +865,7 @@ function openAdminR(){
   document.getElementById('ap-sold').value=product.sold;
   document.getElementById('ap-timer-min').value=product.timerMinutes;
   document.getElementById('ap-images').value=product.images.join('\n');
-  document.getElementById('ap-video-url').value=product.video||'';
+  document.getElementById('ap-videos').value=(product.videos && product.videos.length ? product.videos : (product.video ? [product.video] : [])).join('\n');
   document.getElementById('ap-images-preview').innerHTML=product.images.map(src=>`<img src="${src}" class="img-preview" onerror="this.style.display='none'">`).join('');
   document.getElementById('edit-topbar').value=document.querySelector('.topbar-inner').innerHTML;
   document.getElementById('trust-img-preview').src=document.getElementById('order-trust-img').src;
@@ -930,39 +945,42 @@ function uploadProductImages(event){
   });
 }
 function uploadProductVideo(event){
-  const file=event.target.files[0];
-  if(!file) return;
-  const isGif = file.type==='image/gif';
-  function fallbackBase64(){
-    if(file.size > 6*1024*1024){
-      alert('⚠️ Este video pesa mucho para guardarlo sin el Storage activado (máximo 6MB). Elige uno más corto/liviano, o activa el Storage en Firebase para videos más grandes.');
-      return;
-    }
-    const reader=new FileReader();
-    reader.onload=e=>{
-      document.getElementById('ap-video-url').value=e.target.result;
-      showFloatMsg('✅ Video/GIF cargado, recuerde guardar');
-    };
-    reader.readAsDataURL(file);
+  const files=event.target.files;
+  if(!files.length) return;
+  const ta=document.getElementById('ap-videos');
+  let pending=files.length;
+  function addAndCheck(val){
+    if(val) ta.value = ta.value ? ta.value+'\n'+val : val;
+    pending--;
+    if(pending===0) showFloatMsg('✅ Video(s)/GIF(s) listo(s), recuerde guardar');
   }
-  if(TROGUI_SYNC.isReady() && TROGUI_SYNC.hasStorage()){
-    showFloatMsg('⏳ Subiendo video...');
-    TROGUI_SYNC.uploadFile(file, 'trogui_callos/videos', (url)=>{
-      if(url){
-        document.getElementById('ap-video-url').value=url;
-        showFloatMsg('✅ Video/GIF subido, recuerde guardar');
-      } else {
-        fallbackBase64();
+  Array.from(files).forEach(file=>{
+    function fallbackBase64(){
+      if(file.size > 6*1024*1024){
+        alert('⚠️ "'+file.name+'" pesa mucho para guardarlo sin el Storage activado (máximo 6MB por video). Elija uno más corto/liviano, o active el Storage en Firebase para videos más grandes.');
+        pending--;
+        return;
       }
-    });
-  } else {
-    fallbackBase64();
-  }
+      const reader=new FileReader();
+      reader.onload=e=> addAndCheck(e.target.result);
+      reader.readAsDataURL(file);
+    }
+    if(TROGUI_SYNC.isReady() && TROGUI_SYNC.hasStorage()){
+      showFloatMsg('⏳ Subiendo video...');
+      TROGUI_SYNC.uploadFile(file, 'trogui_callos/videos', (url)=>{
+        if(url) addAndCheck(url);
+        else fallbackBase64();
+      });
+    } else {
+      fallbackBase64();
+    }
+  });
 }
 function saveProductMedia(){
   const urls=document.getElementById('ap-images').value.split('\n').map(u=>u.trim()).filter(Boolean);
   if(urls.length) product.images=urls;
-  product.video=document.getElementById('ap-video-url').value.trim();
+  product.videos=document.getElementById('ap-videos').value.split('\n').map(u=>u.trim()).filter(Boolean);
+  delete product.video; // ya no usamos el campo viejo de un solo video
   localStorage.setItem('trogui_callos_product',JSON.stringify(product));
   TROGUI_SYNC.saveField('product', product);
   renderProduct();
