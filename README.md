@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -26,11 +27,15 @@ h1,h2,h3{font-family:'Poppins',sans-serif}
 
 /* TOPBAR */
 .topbar{position:relative;overflow:hidden;background:var(--dark);color:#fff;text-align:center;padding:12px 14px;font-size:16px;font-weight:800}
-.topbar-inner{display:inline-block;animation:swayTopbar 2.2s ease-in-out infinite}
-@keyframes swayTopbar{
-  0%,100%{transform:translateX(0)}
-  25%{transform:translateX(-14px)}
-  75%{transform:translateX(14px)}
+.topbar-inner{display:inline-block;animation:flyRotateIn 4.5s ease-in-out infinite}
+@keyframes flyRotateIn{
+  0%{opacity:0;transform:translateY(-30px) rotate(-12deg) scale(.7)}
+  15%{opacity:1;transform:translateY(0) rotate(6deg) scale(1.1)}
+  25%{transform:translateY(0) rotate(-4deg) scale(1)}
+  35%{transform:translateY(0) rotate(2deg) scale(1)}
+  45%,78%{opacity:1;transform:translateY(0) rotate(0) scale(1)}
+  90%{opacity:0;transform:translateY(22px) rotate(8deg) scale(.85)}
+  100%{opacity:0;transform:translateY(-30px) rotate(-12deg) scale(.7)}
 }
 .topbar::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,.18),transparent);transform:skewX(-20deg);animation:shineMove 3.2s ease-in-out infinite}
 .topbar span{color:var(--orange)}
@@ -38,9 +43,17 @@ h1,h2,h3{font-family:'Poppins',sans-serif}
 /* HEADER */
 header{background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.08);position:sticky;top:0;z-index:900;padding:14px 16px}
 .header-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.header-btns-row{display:flex;gap:8px;flex-wrap:nowrap}
 .logo-text{font-family:'Poppins',sans-serif;font-weight:900;font-size:32px;background:var(--orange);color:var(--dark);padding:4px 16px;border-radius:12px;letter-spacing:-1px}
-.wa-btn-header{display:flex;align-items:center;gap:8px;background:#25D366;color:#fff;padding:14px 22px;border-radius:16px;font-weight:900;font-size:19px;box-shadow:0 4px 14px rgba(37,211,102,.35)}
-.catalog-btn-header{display:flex;align-items:center;gap:8px;background:var(--orange);color:#fff;padding:14px 22px;border-radius:16px;font-weight:900;font-size:19px;box-shadow:0 4px 14px rgba(255,82,0,.35)}
+.wa-btn-header{display:flex;align-items:center;gap:6px;background:#25D366;color:#fff;padding:12px 18px;border-radius:14px;font-weight:900;font-size:16px;box-shadow:0 4px 14px rgba(37,211,102,.35);white-space:nowrap}
+.catalog-btn-header{display:flex;align-items:center;gap:6px;background:var(--orange);color:#fff;padding:12px 18px;border-radius:14px;font-weight:900;font-size:16px;box-shadow:0 4px 14px rgba(255,82,0,.35);white-space:nowrap}
+@media(max-width:480px){
+  header{padding:10px 12px}
+  .logo-text{font-size:24px;padding:3px 12px}
+  .header-btns-row{gap:6px;width:100%}
+  .wa-btn-header,.catalog-btn-header{font-size:12.5px;padding:9px 10px;border-radius:11px;gap:4px;flex:1;justify-content:center}
+  .wa-btn-header span.wa-full-text,.catalog-btn-header span.wa-full-text{display:none}
+}
 
 /* HERO */
 .hero{max-width:1100px;margin:0 auto;padding:30px 16px 10px;display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:start}
@@ -217,9 +230,9 @@ footer p{font-size:15px;color:#bbb}
 <header>
   <div class="header-inner">
     <div class="logo-text">TROGÜI</div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <a href="https://troguistore.github.io/web/" target="_blank" class="catalog-btn-header">🛍️ Ver Catálogo</a>
-      <a href="https://wa.me/573206572598" target="_blank" class="wa-btn-header">💬 Escríbenos: 320 657 2598</a>
+    <div class="header-btns-row">
+      <a href="https://troguistore.github.io/web/" target="_blank" class="catalog-btn-header">🛍️ <span class="wa-full-text">Ver </span>Catálogo</a>
+      <a href="https://wa.me/573206572598" target="_blank" class="wa-btn-header">💬 <span class="wa-full-text">Escríbenos: </span>320 657 2598</a>
     </div>
   </div>
 </header>
@@ -233,7 +246,7 @@ footer p{font-size:15px;color:#bbb}
     <div class="gallery-main">
       <img id="main-img" src="" alt="Quita Callos Eléctrico" onclick="openLightbox(this.src)" decoding="async" fetchpriority="high">
       <div class="gallery-thumbs" id="gallery-thumbs"></div>
-      <video id="main-video" class="media-video" style="display:none" autoplay muted loop playsinline controls></video>
+      <div id="media-video-wrap"></div>
     </div>
   </div>
   <div class="info-box">
@@ -667,13 +680,16 @@ function renderProduct(){
   const thumbs=document.getElementById('gallery-thumbs');
   thumbs.innerHTML=imgs.map((src,i)=>`<img src="${src}" loading="lazy" class="${i===0?'active':''}" onclick="setMainImg(this,'${src.replace(/'/g,"\\'")}')" onerror="this.style.display='none'">`).join('');
 
-  // video
-  const videoEl=document.getElementById('main-video');
+  // video o gif (detectamos el tipo para que se muestre correctamente)
+  const mediaWrap=document.getElementById('media-video-wrap');
+  mediaWrap.innerHTML='';
   if(product.video){
-    videoEl.src=product.video;
-    videoEl.style.display='block';
-  } else {
-    videoEl.style.display='none';
+    const isGif = /^data:image\/gif/i.test(product.video) || /\.gif(\?|$)/i.test(product.video);
+    if(isGif){
+      mediaWrap.innerHTML = `<img src="${product.video}" class="media-video" alt="Video del producto" onerror="this.parentNode.innerHTML=''">`;
+    } else {
+      mediaWrap.innerHTML = `<video class="media-video" autoplay muted loop playsinline controls onerror="this.parentNode.innerHTML=''"><source src="${product.video}"></video>`;
+    }
   }
 }
 function setMainImg(el,src){
