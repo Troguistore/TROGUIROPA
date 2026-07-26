@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -606,6 +607,16 @@ const TROGUI_SYNC = (function(){
 <script>
 let timerInterval=null;
 
+// Guarda en la memoria del celular sin que un error (memoria llena) detenga
+// el resto de la página. Esto es lo que antes hacía que "no apareciera nada".
+function safeLocalSave(key, value){
+  try{
+    localStorage.setItem(key, value);
+  }catch(e){
+    console.warn('No se pudo guardar "'+key+'" en este dispositivo (memoria llena). No hay problema, ya quedó guardado en la nube.', e);
+  }
+}
+
 // ========== INIT ==========
 document.addEventListener('DOMContentLoaded', ()=>{
   // 1) Mostramos primero lo que haya guardado localmente (para que cargue rápido)
@@ -634,22 +645,22 @@ document.addEventListener('DOMContentLoaded', ()=>{
 function applyRemoteData(data){
   if(data.product){
     product = data.product;
-    localStorage.setItem('trogui_callos_product',JSON.stringify(product));
-    renderProduct();
+    renderProduct();      // <- esto ahora SIEMPRE se ejecuta, pase lo que pase abajo
     startCountdown();
+    safeLocalSave('trogui_callos_product', JSON.stringify(product));
   }
   if(data.reviews){
     reviews = data.reviews;
-    localStorage.setItem('trogui_callos_reviews',JSON.stringify(reviews));
     renderReviews();
+    safeLocalSave('trogui_callos_reviews', JSON.stringify(reviews));
   }
   if(data.topbar){
     document.querySelector('.topbar-inner').innerHTML=data.topbar;
-    localStorage.setItem('trogui_callos_topbar',data.topbar);
+    safeLocalSave('trogui_callos_topbar', data.topbar);
   }
   if(data.trustImg){
     document.getElementById('order-trust-img').src=data.trustImg;
-    localStorage.setItem('trogui_callos_trust_img',data.trustImg);
+    safeLocalSave('trogui_callos_trust_img', data.trustImg);
   }
 }
 
@@ -927,8 +938,8 @@ function saveProductInfo(){
   product.oldPrice=parseInt(document.getElementById('ap-oldprice').value)||product.oldPrice;
   product.sold=document.getElementById('ap-sold').value||product.sold;
   product.timerMinutes=parseInt(document.getElementById('ap-timer-min').value)||product.timerMinutes;
-  localStorage.setItem('trogui_callos_product',JSON.stringify(product));
   TROGUI_SYNC.saveField('product', product);
+  safeLocalSave('trogui_callos_product', JSON.stringify(product));
   renderProduct();
   startCountdown();
   showFloatMsg(TROGUI_SYNC.isReady() ? '✅ Guardado para TODOS los dispositivos' : '✅ Guardado en este dispositivo');
@@ -1017,10 +1028,16 @@ function saveProductMedia(){
   if(urls.length) product.images=urls;
   product.videos=document.getElementById('ap-videos').value.split('\n').map(u=>u.trim()).filter(Boolean);
   delete product.video; // ya no usamos el campo viejo de un solo video
-  localStorage.setItem('trogui_callos_product',JSON.stringify(product));
-  TROGUI_SYNC.saveField('product', product);
   renderProduct();
-  showFloatMsg(TROGUI_SYNC.isReady() ? '✅ Guardado para TODOS los dispositivos' : '✅ Guardado en este dispositivo');
+  safeLocalSave('trogui_callos_product', JSON.stringify(product));
+  if(!TROGUI_SYNC.isReady()){
+    showFloatMsg('✅ Guardado en este dispositivo');
+    return;
+  }
+  showFloatMsg('⏳ Guardando en la nube...');
+  TROGUI_SYNC.saveField('product', product).then(ok=>{
+    showFloatMsg(ok ? '✅ Guardado para TODOS los dispositivos' : '⚠️ No se pudo guardar en la nube, revise su conexión e intente de nuevo');
+  });
 }
 
 function uploadTrustImage(event){
@@ -1053,16 +1070,16 @@ function saveTrustImage(){
   const pending=document.getElementById('trust-img-preview').dataset.pending;
   const finalSrc=urlVal||pending||document.getElementById('trust-img-preview').src;
   document.getElementById('order-trust-img').src=finalSrc;
-  localStorage.setItem('trogui_callos_trust_img',finalSrc);
   TROGUI_SYNC.saveField('trustImg', finalSrc);
+  safeLocalSave('trogui_callos_trust_img', finalSrc);
   showFloatMsg(TROGUI_SYNC.isReady() ? '✅ Guardado para TODOS los dispositivos' : '✅ Guardado en este dispositivo');
 }
 
 function saveTopbar(){
   const v=document.getElementById('edit-topbar').value;
   document.querySelector('.topbar-inner').innerHTML=v;
-  localStorage.setItem('trogui_callos_topbar',v);
   TROGUI_SYNC.saveField('topbar', v);
+  safeLocalSave('trogui_callos_topbar', v);
   showFloatMsg(TROGUI_SYNC.isReady() ? '✅ Guardado para TODOS los dispositivos' : '✅ Guardado en este dispositivo');
 }
 
@@ -1082,9 +1099,9 @@ function saveReviews(){
     stars:parseInt(document.getElementById('rs-'+i).value)||r.stars,
     text:document.getElementById('rt-'+i).value||r.text,
   }));
-  localStorage.setItem('trogui_callos_reviews',JSON.stringify(reviews));
   TROGUI_SYNC.saveField('reviews', reviews);
   renderReviews();
+  safeLocalSave('trogui_callos_reviews', JSON.stringify(reviews));
   showFloatMsg(TROGUI_SYNC.isReady() ? '✅ Guardado para TODOS los dispositivos' : '✅ Guardado en este dispositivo');
 }
 
