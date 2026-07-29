@@ -44,9 +44,15 @@
   .price-now{font-family:'Fraunces',serif; font-size:34px; font-weight:800; color:var(--clay);}
   .price-old{font-size:15px; color:#9AA0A6; text-decoration:line-through;}
 
-  .cta-primary{display:inline-flex; align-items:center; justify-content:center; gap:10px; background:var(--clay); color:var(--white); font-weight:800; font-size:16px; padding:16px 26px; border-radius:12px; border:none; cursor:pointer; width:100%; max-width:420px; box-shadow:0 10px 24px rgba(255,87,34,0.32); text-decoration:none;}
+  .cta-primary{display:inline-flex; align-items:center; justify-content:center; gap:10px; background:var(--clay); color:var(--white); font-weight:800; font-size:16px; padding:16px 26px; border-radius:12px; border:none; cursor:pointer; width:100%; max-width:420px; box-shadow:0 10px 24px rgba(255,87,34,0.32); text-decoration:none; animation:shakeCTA 3.2s ease-in-out infinite;}
+  @keyframes shakeCTA{0%,88%,100%{transform:translateX(0) rotate(0);}89%{transform:translateX(-3px) rotate(-1deg);}90%{transform:translateX(3px) rotate(1deg);}91%{transform:translateX(-3px) rotate(-1deg);}92%{transform:translateX(3px) rotate(1deg);}93%{transform:translateX(-2px) rotate(0);}94%{transform:translateX(0);}}
   .cta-primary:hover{background:var(--clay-dark);}
   .cta-sub{font-size:12px; color:var(--ink-soft); margin-top:10px;}
+
+  .shipband{background:var(--ink); color:var(--white); padding:11px 0; overflow:hidden; position:relative;}
+  .shipband-track{display:flex; gap:40px; white-space:nowrap; animation:scrollBand 16s linear infinite; font-weight:700; font-size:12.5px; letter-spacing:.03em; width:max-content;}
+  .shipband-track span{display:flex; align-items:center; gap:8px; color:var(--gold);}
+  @keyframes scrollBand{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
 
   .trust-row{display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-top:20px;}
   .trust-chip{display:flex; align-items:center; gap:6px; background:var(--green-light); color:var(--green); font-size:12px; font-weight:700; padding:8px 12px; border-radius:100px;}
@@ -218,6 +224,20 @@
     </div>
   </div>
 </section>
+
+<div class="shipband">
+  <div class="shipband-track">
+    <span>🚚 Envío gratis a toda Colombia</span>
+    <span>💵 Pago contra entrega</span>
+    <span>✅ Producto nuevo y garantizado</span>
+    <span>🚚 Envío gratis a toda Colombia</span>
+    <span>💵 Pago contra entrega</span>
+    <span>✅ Producto nuevo y garantizado</span>
+    <span>🚚 Envío gratis a toda Colombia</span>
+    <span>💵 Pago contra entrega</span>
+    <span>✅ Producto nuevo y garantizado</span>
+  </div>
+</div>
 
 <section>
   <div class="wrap">
