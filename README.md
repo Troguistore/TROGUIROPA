@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -40,6 +41,7 @@
   .hero p.lead{font-size:15px; color:#4B564F; margin:12px 0 0; max-width:52ch;}
   .price-row{display:flex; align-items:baseline; gap:14px; margin:18px 0 16px; flex-wrap:wrap;}
   .price-now{font-family:'Fraunces',serif; font-size:32px; font-weight:800; color:var(--clay-dark);}
+  .price-old{font-size:17px; color:#9AA0A6; text-decoration:line-through; font-weight:600;}
   .badge-ship{display:inline-block; background:var(--gold); color:var(--ink); font-weight:800; font-size:12px; padding:5px 10px; border-radius:6px; animation:pulseBadge 2.4s ease-in-out infinite;}
   @keyframes pulseBadge{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
 
@@ -207,6 +209,7 @@
     <div class="hero-copy">
       <p class="lead">Imagina prender tu televisor y tener ahí, al instante, Netflix, YouTube, Disney+ y todas tus apps — en 4K, sin cables enredados ni technicismos. Eso es lo que hace el TV Stick TROGÜI.</p>
       <div class="price-row">
+        <span class="price-old">$120.000</span>
         <span class="price-now">$89.000</span>
         <span class="badge-ship">ENVÍO GRATIS</span>
       </div>
