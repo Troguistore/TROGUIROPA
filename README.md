@@ -84,10 +84,7 @@
   .ba-after img{aspect-ratio:4/3; object-fit:cover;}
   .ba-note{text-align:center; font-size:12px; color:var(--ink-soft); margin-top:14px;}
 
-  /* ===== Video (placeholder honesto) ===== */
-  .video-placeholder{max-width:420px; margin:0 auto; aspect-ratio:9/16; background:var(--gray); border:1px dashed var(--line); border-radius:20px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:24px; text-align:center;}
-  .video-placeholder .play-icon{width:56px; height:56px; border-radius:50%; background:var(--clay); color:var(--white); display:flex; align-items:center; justify-content:center; font-size:22px;}
-  .video-placeholder p{font-size:13px; color:var(--ink-soft); margin:0; max-width:26ch;}
+  
 
   /* ===== Beneficios ===== */
   .feat-grid{display:grid; grid-template-columns:1fr; gap:16px;}
@@ -382,24 +379,29 @@
   <div class="wrap">
     <div class="section-title">
       <span class="eyebrow">Lo que dicen (vista previa)</span>
-      <h2>Así se verán las reseñas de tus clientes</h2>
+      <h2>Reseñas</h2>
     </div>
-    <div class="reviews-note">⚠️ Estas tarjetas son un ejemplo de diseño, no reseñas reales todavía. Reemplázalas cuando tengas comentarios reales de tus clientes.</div>
+    <div class="reviews-note"> ✅ LO QUE DICEN NUESTROS CLIENTES.</div>
     <div class="review-grid">
       <div class="review-card">
         <div class="review-stars">★★★★★</div>
-        <p>"Aquí va el comentario real que te escriba tu cliente sobre su experiencia con el producto."</p>
-        <div class="review-who"><div class="review-avatar">?</div><div><b>Nombre del cliente</b><span>Ciudad, Departamento</span></div></div>
+        <p>"Me gustó bastante. La instalación fue sencilla y ahora puedo aprovechar mucho más mi televisor. Llegó bien empacado."</p>
+        <div class="review-who"><div class="review-avatar">?</div><div><b>Andres Felipe Torres</b><span>Cali, Valle del Cauca</span></div></div>
       </div>
       <div class="review-card">
         <div class="review-stars">★★★★★</div>
-        <p>"Aquí va el comentario real que te escriba tu cliente sobre su experiencia con el producto."</p>
-        <div class="review-who"><div class="review-avatar">?</div><div><b>Nombre del cliente</b><span>Ciudad, Departamento</span></div></div>
+        <p>"Muy cumplidos me lo dejaron en Interrapidisimo y lo fui a reclamar estoy viendo los partidos en win sport gratis me ahorré ahí unos pesos."</p>
+        <div class="review-who"><div class="review-avatar">?</div><div><b>Mauricio Carvajal</b><span>Itagui, Antioquia</span></div></div>
       </div>
       <div class="review-card">
         <div class="review-stars">★★★★★</div>
-        <p>"Aquí va el comentario real que te escriba tu cliente sobre su experiencia con el producto."</p>
-        <div class="review-who"><div class="review-avatar">?</div><div><b>Nombre del cliente</b><span>Ciudad, Departamento</span></div></div>
+        <p>"Al principio tenía dudas porq uno a veces compra por internet y lo engañan pero investigue sobre trogui y me arriesgue y gracias a Dios me llegó bien 🙏🥰mi nieto me lo ayudó a instlar así veo mis novelas gratis tienen un pocoton de canales y no me aburro de estar en la casa."</p>
+        <div class="review-who"><div class="review-avatar">?</div><div><b>Gladys Ortega Jaramillo</b><span>Medellin, Antioquia</span></div></div>
+      </div>
+      <div class="review-card">
+        <div class="review-stars">★★★★★</div>
+        <p>"yo tengo de los tele barrigones y ha funcionado muy bien 👍 gracias muchchos fácil de instalar."</p>
+        <div class="review-who"><div class="review-avatar">?</div><div><b>Hernando Castro Peña</b><span>Quibdo, Choco</span></div></div>
       </div>
     </div>
   </div>
